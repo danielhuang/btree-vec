@@ -399,6 +399,32 @@ impl<T, const B: usize, A: Allocator> BTreeVec<T, B, A> {
             phantom: PhantomData,
         }
     }
+
+    pub fn retain(&mut self, mut f: impl FnMut(&T) -> bool) {
+        let mut i = self.len() - 1;
+        loop {
+            if !f(&self[i]) {
+                self.remove(i);
+            }
+            if i == 0 {
+                break;
+            }
+            i -= 1;
+        }
+    }
+
+    pub fn clear(&mut self) {
+        while let Some(_) = self.pop() {}
+    }
+
+    pub fn fill(&mut self, item: T)
+    where
+        T: Clone,
+    {
+        for x in self.iter_mut() {
+            *x = item.clone();
+        }
+    }
 }
 
 impl<T, const B: usize, A> Default for BTreeVec<T, B, A>
@@ -715,6 +741,24 @@ impl<T, const B: usize, A: Allocator> IntoIterator for BTreeVec<T, B, A> {
             leaf,
             remaining: self.len(),
             _tree: self,
+        }
+    }
+}
+
+impl<T, const B: usize> FromIterator<T> for BTreeVec<T, B> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mut v = Self::create();
+        for x in iter {
+            v.push(x);
+        }
+        v
+    }
+}
+
+impl<T, const B: usize> Extend<T> for BTreeVec<T, B> {
+    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
+        for x in iter {
+            self.push(x);
         }
     }
 }
